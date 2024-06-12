@@ -75,3 +75,27 @@ $ docker compose build web
 `ALLOWED_HOSTS` -- настройка Django со списком разрешённых адресов. Если запрос прилетит на другой адрес, то сайт ответит ошибкой 400. Можно перечислить несколько адресов через запятую, например `127.0.0.1,192.168.0.1,site.test`. [Документация Django](https://docs.djangoproject.com/en/3.2/ref/settings/#allowed-hosts).
 
 `DATABASE_URL` -- адрес для подключения к базе данных PostgreSQL. Другие СУБД сайт не поддерживает. [Формат записи](https://github.com/jacobian/dj-database-url#url-schema).
+
+### Переменные окружения в Kubernetes
+
+Kubernetes использует `Secret` для обработки переменных окружения.
+Для использования секретов нужно создать манифест-файл (или скопировать файл `example-django-secret.yaml`) и вписать значения в следующем виде:
+```YAML
+apiVersion: v1
+kind: Secret
+metadata:
+  name: django-secret
+type: Opaque
+stringData:
+  DEBUG: "False"
+  SECRET_KEY: "secret_key"
+  DATABASE_URL: "database_url"
+  ALLOWED_HOSTS: "allowed_hosts"
+  
+```
+Затем использовать `kubectl`, чтобы создать `Secret`:
+```sh
+kubectl apply -f django-secret.yaml  # django-secret.yaml - предварительно созданный манифест-файл
+```
+
+При изменении значений переменных достаточно отредактировать манифест-файл и снова применить его через `kubectl apply`

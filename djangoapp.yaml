@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: djangoapp
+  labels:
+    app: djangoapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: djangoapp
+  template:
+    metadata:
+      labels:
+        app: djangoapp
+    spec:
+      containers:
+      - name: django-backend
+        image: django-backend:latest
+        imagePullPolicy: IfNotPresent
+        envFrom:
+          - secretRef:
+              name: django-secret
+        ports:
+        - containerPort: 80
+          name: django-port
+        env:
+        - name: DEBUG
+          value: "True"
+
+# apiVersion: v1
+# kind: Pod
+# metadata:
+#   name: djangoapp
+#   labels:
+#     app: djangoapp
+#     owner: David_Schnoll
+# spec: 
+#   containers:
+#   - name: django-backend
+#     image: django-backend:latest
+#     imagePullPolicy: IfNotPresent
+#     envFrom:
+#     - secretRef:
+#         name: django-secret
+#     ports:
+#       - containerPort: 80
+#         name: django-port
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: djangoapp-svc
+  labels: 
+    env: dev
+    owner: David_Schnoll
+spec:
+  selector:
+    app: djangoapp
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: django-port
+  type: LoadBalancer
