@@ -76,10 +76,43 @@ $ docker compose build web
 
 `DATABASE_URL` -- адрес для подключения к базе данных PostgreSQL. Другие СУБД сайт не поддерживает. [Формат записи](https://github.com/jacobian/dj-database-url#url-schema).
 
-### Переменные окружения в Kubernetes
 
-Kubernetes использует `Secret` для обработки переменных окружения.
-Для использования секретов нужно создать манифест-файл (или скопировать файл `example-django-secret.yaml`) и вписать значения в следующем виде:
+## Using Kubernetes and Minikube
+
+Start Minikube and enable Ingress addon:
+```sh
+minikube start
+minikube addons enable ingress
+```
+
+Configure k8s Secret - see [environmental variables section](#environmental-variables-in-kubernetes).
+
+Apply `djangoapp.yaml` manifest file:
+```sh
+kubectl apply -f djangoapp.yaml
+```
+
+Verify that deployment, service and pod are launched:
+```sh
+kubectl get all
+```
+You'll see a list similar to this:
+```
+$ kubectl get all
+NAME                             READY   STATUS    RESTARTS   AGE
+pod/djangoapp-6cf7cf8889-v4ckd   1/1     Running   0          3h10m
+
+NAME                    TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)   AGE
+service/djangoapp-svc   ClusterIP   10.111.123.164   <none>        80/TCP    3h42m
+service/kubernetes      ClusterIP   10.96.0.1        <none>        443/TCP   54d
+
+NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/djangoapp   1/1     1            1           3h42m
+```
+
+### Environmental variables in Kubernetes
+Kubernetes uses `Secret` to get environmental variables needed for Django to work.
+Create a `django-secret.yaml` file (or copy/edit `example-django-secret.yaml`) and write down your vars as follows:
 ```YAML
 apiVersion: v1
 kind: Secret
@@ -93,9 +126,35 @@ stringData:
   ALLOWED_HOSTS: "allowed_hosts"
   
 ```
-Затем использовать `kubectl`, чтобы создать `Secret`:
+Then use `kubectl apply` to create `Secret`:
 ```sh
-kubectl apply -f django-secret.yaml  # django-secret.yaml - предварительно созданный манифест-файл
+kubectl apply -f django-secret.yaml
+```
+To verify that the Secret is successfully configured, run:
+```sh
+kubectl get secrets
+```
+You will see your created secret with DATA reflecting the amount of variables that was set:
+```
+$ kubectl get secrets
+NAME            TYPE     DATA   AGE
+django-secret   Opaque   5      54d
 ```
 
-При изменении значений переменных достаточно отредактировать манифест-файл и снова применить его через `kubectl apply`
+If you add/modify env variables, edit the file and `kubectl apply` it once again.
+
+### Accessing website
+An Ingress is set up to access the Django site at http://star-burger.test. 
+Add the minikube's IP to /etc/hosts:
+```
+$ minikube ip
+192.168.59.101
+```
+`/etc/hosts`:
+```
+# previous rows
+
+192.168.59.101 star-burger.test
+```
+
+Start `minikube tunnel` in a separate terminal window.
