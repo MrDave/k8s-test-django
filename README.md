@@ -158,3 +158,10 @@ $ minikube ip
 ```
 
 Start `minikube tunnel` in a separate terminal window.
+
+### Clearing Django sessions
+To have Django sessions cleared regularly, apply `django-clearsessions.yaml` manifest file:
+```sh
+kubectl apply -f django-clearsessions.yaml
+```
+This will create a CronJob that will run a Job doing Django's `manage.py clearsession` once a month.

@@ -1,17 +1,20 @@
 apiVersion: batch/v1
-kind: Job
+kind: CronJob
 metadata:
   name: django-clearsessions
 spec:
-  template:  
+  schedule: "0 0 1 * *"
+  jobTemplate:
     spec:
-      containers:
-      - name: clearsessions
-        image: django-backend:latest
-        imagePullPolicy: IfNotPresent
-        envFrom:
-          - secretRef:
-              name: django-secret
-        command: ['sh', '-c', './manage.py clearsessions']
-      restartPolicy: OnFailure
-  backoffLimit: 4    
+      template:  
+        spec:
+          containers:
+          - name: clearsessions
+            image: django-backend:latest
+            imagePullPolicy: IfNotPresent
+            envFrom:
+              - secretRef:
+                  name: django-secret
+            command: ['sh', '-c', './manage.py clearsessions']
+          restartPolicy: OnFailure
+      backoffLimit: 4    
