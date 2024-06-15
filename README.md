@@ -159,12 +159,58 @@ $ minikube ip
 
 Start `minikube tunnel` in a separate terminal window.
 
-### Clearing Django sessions
-To have Django sessions cleared regularly, apply `django-clearsessions.yaml` manifest file:
+### Setting up PostgreSQL database
+Here, Helm is used to install and set up database. Follow [installation guide](https://helm.sh/docs/intro/install/) if Helm is not yet installed.  
+If that's the first time you use Helm, initialize a Helm Chart repo:
 ```sh
-kubectl apply -f django-clearsessions.yaml
+helm repo add bitnami https://charts.bitnami.com/bitnami
 ```
-This will create a CronJob that will run a Job doing Django's `manage.py clearsession` once a month.
+
+Afterwards, install PostgreSQL chart:
+```sh
+helm install bitnami/postgresql --generate-name
+```
+Example result:
+```$ helm install bitnami/postgresql --generate-name
+NAME: postgresql-1718468289
+LAST DEPLOYED: Sat Jun 15 19:18:11 2024
+NAMESPACE: default
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES: ...
+```
+Here, the release is called `postgresql-1718468289`. Replace this name with your release name when running commands.  
+The output will also tell you several commands which are used next. Copy them from the output for ease of execution. 
+
+Export the password for `postgres`:
+```sh
+export POSTGRES_PASSWORD=$(kubectl get secret --namespace default postgresql-1718468289 -o jsonpath="{.data.postgres-password}" | base64 -d)
+```
+Connect to database:
+```sh
+kubectl run postgresql-1718468289-client --rm --tty -i --restart='Never' --namespace default --image docker.io/bitnami/postgresql:16.3.0-debian-12-r14 --env="PGPASSWORD=$POSTGRES_PASSWORD" \
+      --command -- psql --host postgresql-1718468289 -U postgres -d postgres -p 5432
+```
+
+In psql shell create new table and user for the Django project and grant privileges:
+```SQL
+CREATE DATABASE myproject;
+CREATE USER myproject_user WITH PASSWORD 'myproject_database_password';
+ALTER ROLE myproject_user SET client_encoding TO 'utf8';
+ALTER ROLE myproject_user SET default_transaction_isolation TO 'read committed';
+ALTER ROLE myproject_user SET timezone TO 'UTC';
+GRANT ALL PRIVILEGES ON DATABASE myproject TO myproject_user;
+ALTER DATABASE myproject OWNER TO myproject_user;
+``` 
+Then exit with `\q`
+
+Lastly write correct credentials in `DATABASE_URL` in `django-secret.yaml`:
+```
+DATABASE_URL: "postgres://myproject_user:myproject_database_password@postgresql-1718468289.default.svc.cluster.local:5432/myproject"
+```
+
+Finally, proceed to migrating.
 
 ### Migrating database
 
@@ -179,4 +225,16 @@ Operations to perform:
   Apply all migrations: admin, auth, contenttypes, sessions
 Running migrations:
   No migrations to apply.
+```
+
+### Clearing Django sessions
+To have Django sessions cleared regularly, apply `django-clearsessions.yaml` manifest file:
+```sh
+kubectl apply -f django-clearsessions.yaml
+```
+This will create a CronJob that will run a Job doing Django's `manage.py clearsession` once a month.
+
+Launch the Job manually if needed:
+```sh
+kubectl create job --from=cronjob/django-clearsessions <job-name>
 ```
