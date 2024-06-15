@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: django-clearsessions
+spec:
+  containers:
+  - name: clearsessions
+    image: django-backend:latest
+    imagePullPolicy: IfNotPresent
+    envFrom:
+      - secretRef:
+          name: django-secret
+    command: ['sh', '-c', './manage.py clearsessions']
+  restartPolicy: OnFailure
