@@ -165,3 +165,18 @@ To have Django sessions cleared regularly, apply `django-clearsessions.yaml` man
 kubectl apply -f django-clearsessions.yaml
 ```
 This will create a CronJob that will run a Job doing Django's `manage.py clearsession` once a month.
+
+### Migrating database
+
+To migrate database, apply `django-migrate.yaml` manifest file:
+```sh
+kubectl apply -f django-migrate.yaml
+```
+
+The results of migration (or lack of it if there were no changes) can be seen in Job's logs:
+```
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, sessions
+Running migrations:
+  No migrations to apply.
+```
