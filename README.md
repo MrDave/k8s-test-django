@@ -87,9 +87,10 @@ minikube addons enable ingress
 
 Configure k8s Secret - see [environmental variables section](#environmental-variables-in-kubernetes).
 
-Apply `djangoapp.yaml` manifest file:
+Apply manifest files:
 ```sh
-kubectl apply -f djangoapp.yaml
+kubectl apply -f djangoapp-deployment.yaml
+kubectl apply -f djangoapp-svc.yaml
 ```
 
 Verify that deployment, service and pod are launched:
@@ -157,7 +158,11 @@ $ minikube ip
 192.168.59.101 star-burger.test
 ```
 
-Start `minikube tunnel` in a separate terminal window.
+Start `minikube tunnel` in a separate terminal window, then apply `djangoapp-ingress.yaml`:
+
+```sh
+kubectl apply -f djangoapp-ingress.yaml
+```
 
 ### Setting up PostgreSQL database
 Here, Helm is used to install and set up database. Follow [installation guide](https://helm.sh/docs/intro/install/) if Helm is not yet installed.  

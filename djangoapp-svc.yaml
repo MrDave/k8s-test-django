@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: djangoapp-svc
+  labels: 
+    env: dev
+    owner: David_Schnoll
+spec:
+  selector:
+    app: djangoapp
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80  
+      targetPort: django-port
+  type: ClusterIP
