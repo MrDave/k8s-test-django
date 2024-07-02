@@ -65,3 +65,56 @@ deployment.apps/nginx   1/1     1            1           153m
 ```
 
 Now the app is accessible via url to Yandex Cloud domain.
+
+## Connecting to PostgreSQL database
+
+### Mounting SSL certificate
+
+#### Creating k8s Secret
+
+To connect to database the Pods must have an SSL certificate installed.
+
+There might already be a Secret in your k8s namespace called `pg-root-cert`. If that's the case, skip this step and continue with [mounting the certificate volume](#mounting-the-certificate-volume).
+
+In order to obtain the certificate check Yandex Cloud's [instructions on getting SSL certificate](https://yandex.cloud/en/docs/managed-postgresql/operations/connect#get-ssl-cert) and copy the `save the certificate`link. Then pass it to `base64` to encode the file:
+
+```sh
+curl https://storage.yandexcloud.net/cloud-certs/RootCA.pem | base64
+```
+
+Copy the output and create a Secret manifest file:
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pg-root-cert
+  namespace: <your-namespace>
+data:
+  root.crt: <base64-encoded output>
+```
+
+Apply the secret using `kubectl apply` then continue to next step.
+
+#### Mounting the certificate volume
+
+In app deployment manifest file include `volumes` in template's `spec` and `volumeMounts` in `spec.containers`:
+
+```yaml
+...
+template:
+  spec:
+    containers:
+      - name: <container-name>
+        image: <container-image>
+        volumeMounts:
+          - mountPath: "/.postgresql"
+            name: pg-root-cert
+            readOnly: true
+    volumes:
+      - name: pg-root-cert
+        secret:
+          secretName: pg-root-cert
+          defaultMode: 384
+```
+
+This will ensure that every Pod will be created with `/.posgresql/root.crt` file (the SSL certificate) with `0600` permissions needed for PostgreSQL to work.
