@@ -125,7 +125,8 @@ NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
 deployment.apps/djangoapp   3/3     3            3           75m
 ```
 
-Now the app is accessible via url to Yandex Cloud domain.
+Now the app is accessible via url to Yandex Cloud domain.  
+Example link: https://edu-stoic-dubinsky.sirius-k8s.dvmn.org/
 
 ### Updating images
 
