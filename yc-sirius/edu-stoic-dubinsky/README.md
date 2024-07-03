@@ -25,7 +25,7 @@ kubectl config view --minify | grep namespace:
     namespace: edu-stoic-dubinsky
 ```
 
-## Running apps
+## Deploying apps
 
 Currently, test ngninx app is configured to run.
 
@@ -65,6 +65,38 @@ deployment.apps/nginx   1/1     1            1           153m
 ```
 
 Now the app is accessible via url to Yandex Cloud domain.
+
+### Updating images
+
+The docker images of the django app are created and pushed with GitHub commit hash as the image's tag.
+
+To do this yourself without checking the hash value manually use `"$(git log -1 --pretty=%h)"` when tagging images. The command should be executed from within the cloned repository's folder for `git` command to work. 
+
+Example:
+```sh
+docker build -t mrdave95/django-site:"$(git log -1 --pretty=%h)"
+```
+
+For extra convenience, create a shell script in `backend_main_django` folder:
+
+```sh
+#!/bin/bash 
+
+VERSION=$(git log -1 --pretty=%h)
+REPO="registry.example.com/my-project:"  # Replace this string with your repo and image name, e.g. "mrdave95/django-site:"
+TAG="$REPO$VERSION"
+LATEST="${REPO}latest"
+BUILD_TIMESTAMP=$( date '+%F_%H:%M:%S' )
+docker build -t "$TAG" -t "$LATEST" --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" . 
+docker push "$TAG" 
+docker push "$LATEST"
+```
+
+This script will build the image of the current commit and tag it as both "latest" and with the commit's hash value as well as provide timestamps as environmental variables for the image.
+
+This isn't suggested for checked out prevoius commits as the script will overwrite the image with "latest" tag with the new one. You can still build and push images from previous commits manually.
+
+See [gist with script template](https://gist.github.com/MrDave/05719143fc098092cb7b3d7b1b11e3ef) for details.
 
 ## Connecting to PostgreSQL database
 
