@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: django-createsuperuser
+spec:
+  ttlSecondsAfterFinished: 600
+  template:  
+    spec:
+      containers:
+      - name: django-createsuperuser
+        image: mrdave95/django_site:latest
+        imagePullPolicy: IfNotPresent
+        envFrom:
+          - secretRef:
+              name: django-secret
+          - secretRef:
+              name: django-superuser-secret
+        command: ['sh', '-c', './manage.py createsuperuser --noinput']
+      restartPolicy: OnFailure
+  backoffLimit: 4    
