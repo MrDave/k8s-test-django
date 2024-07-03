@@ -2,6 +2,11 @@ FROM nginx/unit:1.25.0-python3.9
 ENV PYTHONUNBUFFERED 1
 ENV PYTHONDONTWRITEBYTECODE 1
 
+ARG VERSION
+ENV VERSION $VERSION
+ARG BUILD_TIMESTAMP
+ENV BUILD_TIMESTAMP $BUILD_TIMESTAMP
+
 WORKDIR /webapp
 COPY requirements.txt /webapp/
 RUN apt update && apt install -y python3-pip                                  \
