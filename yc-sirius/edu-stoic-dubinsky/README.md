@@ -25,28 +25,88 @@ kubectl config view --minify | grep namespace:
     namespace: edu-stoic-dubinsky
 ```
 
-## Deploying apps
+## Deploying Django app
 
-Currently, test ngninx app is configured to run.
+### Configuring secrets
 
-Apply `nginx-deployment.yaml` and `nginx-svc.yaml` manifest files:
-```sh
-kubectl apply -f nginx-deployment.yaml
-kubectl apply -f nginx-svc.yaml
+Set up various env variables and sensitive values.  
+Create a `django-secret.yaml` file (or copy/edit `django-secret-example.yaml`):
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: django-secret
+type: Opaque
+stringData:
+  DEBUG: "False"
+  SECRET_KEY: "secret_key"
+  DATABASE_URL: "database_url"
+  ALLOWED_HOSTS: "allowed_hosts"
 ```
-Note that you will have to edit the node port number in `nginx.yaml` file according to your Cloud credentials:
+See [main README.md](/README.md) for variables' description.
+
+To be able to create a superuser in a database, prepare another file - `django-superuser-secret.yaml` (it's template is `django-superuser-secret-example.yaml`):
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: django-secret
+type: Opaque
+stringData:
+  DJANGO_SUPERUSER_EMAIL: admin@example.com
+  DJANGO_SUPERUSER_USERNAME: admin
+  DJANGO_SUPERUSER_PASSWORD: xxxxxxxx
+```
+
+Apply the secrets, then proceed to next step.
+
+```sh
+kubectl apply -f django-secret.yaml
+kubectl apply -f django-superuser-secret.yaml
+```
+
+### Starting Django
+
+Apply the deployment manifest:
+```sh
+kubectl apply -f django-deployment.yaml
+```
+
+If that's the first set up, migrate database and create a superuser by running respective Jobs:
+```sh
+kubectl apply -f django-migrate.yaml
+kubectl apply -f django-createsuperuser.yaml
+```
+
+The results of migration (or lack of it if there were no changes) can be seen in Job's logs:
+```
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, sessions
+Running migrations:
+  No migrations to apply.
+```
+
+Finally, modify `django-svc.yaml` file to set your NodePort and start the service:
 ```yaml
 ...
+spec:
+  selector:
+    app: djangoapp
   ports:
     - name: http
       protocol: TCP
-      port: 80
-      targetPort: nginx-port
-      nodePort: 30261  # Change this to port available to you
+      port: 80  
+      targetPort: django-port
+      nodePort: 30261  # Change this to the port available to you
   type: NodePort
 ```
+```sh
+kubectl apply -f django-svc.yaml
+```
 
-Verify that deployment, service and pod are launched:
+Verify that the deployment, service and the pods are launched:
 
 ```sh
 kubectl get all
@@ -54,14 +114,16 @@ kubectl get all
 You'll see a list similar to this:
 ```
 $ kubectl get all
-NAME                         READY   STATUS    RESTARTS   AGE
-pod/nginx-78c9775fd8-njmbk   1/1     Running   0          153m
+NAME                             READY   STATUS    RESTARTS   AGE
+pod/djangoapp-5554dcd8d5-c6257   1/1     Running   0          74m
+pod/djangoapp-5554dcd8d5-d6xnq   1/1     Running   0          74m
+pod/djangoapp-5554dcd8d5-t8ng9   1/1     Running   0          74m
 
-NAME                TYPE       CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
-service/nginx-svc   NodePort   10.98.129.119   <none>        80:30261/TCP   31m
+NAME                    TYPE       CLUSTER-IP     EXTERNAL-IP   PORT(S)        AGE
+service/djangoapp-svc   NodePort   10.98.183.51   <none>        80:30261/TCP   56m
 
-NAME                    READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/nginx   1/1     1            1           153m
+NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/djangoapp   3/3     3            3           75m
 ```
 
 Now the app is accessible via url to Yandex Cloud domain.
