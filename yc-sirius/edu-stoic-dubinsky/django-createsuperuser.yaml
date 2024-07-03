@@ -10,6 +10,12 @@ spec:
       - name: django-createsuperuser
         image: mrdave95/django_site:latest
         imagePullPolicy: IfNotPresent
+        env:
+          - name: DATABASE_URL
+            valueFrom:
+              secretKeyRef:
+                name: postgres
+                key: dsn    
         envFrom:
           - secretRef:
               name: django-secret

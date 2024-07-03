@@ -22,6 +22,12 @@ spec:
             - mountPath: "/.postgresql"
               name: pg-root-cert
               readOnly: true
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: dsn    
           envFrom:
             - secretRef:
                 name: django-secret

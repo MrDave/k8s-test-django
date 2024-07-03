@@ -41,10 +41,9 @@ type: Opaque
 stringData:
   DEBUG: "False"
   SECRET_KEY: "secret_key"
-  DATABASE_URL: "database_url"
   ALLOWED_HOSTS: "allowed_hosts"
 ```
-See [main README.md](/README.md) for variables' description.
+See [main README.md](/README.md) for variables' description. Note that `DATABASE_URL` variable will be loaded from provided `postgres` Secret and there's no need to write it in this secret.
 
 To be able to create a superuser in a database, prepare another file - `django-superuser-secret.yaml` (it's template is `django-superuser-secret-example.yaml`):
 
