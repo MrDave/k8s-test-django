@@ -25,6 +25,9 @@ kubectl config view --minify | grep namespace:
     namespace: edu-stoic-dubinsky
 ```
 
+### Working directory
+The manifest files described here can be found in the same folder as this README (`/yc-sirius/edu-stoic-dubinsky/`). This should also be the working directrory from where to execute commands.
+
 ## Deploying Django app
 
 ### Configuring secrets
@@ -162,13 +165,51 @@ See [gist with script template](https://gist.github.com/MrDave/05719143fc098092c
 
 ## Connecting to PostgreSQL database
 
+There's a dedicated PostgreSQL database for each namespace. Get your db name from the instructions on connecting to Yandex Cloud.
+
+The Django app will connect to the database using a `DATABASE_URL` setting, which should be fetched automatically from `postgres` secret already present in your namespace.
+
+The secret itself contains the db url under `dsn` and `url` keys (`url` is deprecated but remains for backwards compatibility), as well as sepatare keys for database name, host, username, password and port.
+
+```
+$ kubectl describe secret postgres
+Name:         postgres
+Namespace:    edu-stoic-dubinsky
+Labels:       <none>
+Annotations:  description:
+                        Both keys `dsn` and `url` have same values. Key `url` is deprecated and exist for
+                        compatability reason only."
+
+Type:  Opaque
+
+Data
+====
+name:      18 bytes
+password:  16 bytes
+port:      4 bytes
+url:       128 bytes
+username:  18 bytes
+dsn:       128 bytes
+host:      41 bytes
+
+```
+
+The Django app's manifests include `env` field, which fetches the db url.
+```yaml
+...
+env:
+  - name: DATABASE_URL
+    valueFrom:
+      secretKeyRef:
+        name: postgres
+        key: dsn   
+```
+
 ### Mounting SSL certificate
 
-#### Creating k8s Secret
+To connect to database the Pods must have an SSL certificate installed. If there already is `pg-root-cert` secret in your name space, skip the next step and go to [mounting the certificate volume](#mounting-the-certificate-volume). Otherwise, continue with creating the k8s secret.
 
-To connect to database the Pods must have an SSL certificate installed.
-
-There might already be a Secret in your k8s namespace called `pg-root-cert`. If that's the case, skip this step and continue with [mounting the certificate volume](#mounting-the-certificate-volume).
+#### Creating the k8s Secret
 
 In order to obtain the certificate check Yandex Cloud's [instructions on getting SSL certificate](https://yandex.cloud/en/docs/managed-postgresql/operations/connect#get-ssl-cert) and copy the `save the certificate`link. Then pass it to `base64` to encode the file:
 
